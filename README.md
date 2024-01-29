@@ -14,7 +14,7 @@ When you run the program, it will request three folders:
 2. USDA File to Append
 3. Destination Folder
 
-Files from the ingestion folder will be moved to the destination folder after processing.
+Folder and their files from the ingestion folder will be moved to the destination folder after processing.
 
 ### 1. Ingestion Folder
 Your ingestion folder should include folders named with the material ID of the assets, MUST BE THIS FORMAT "Material Name - MaterialID".
@@ -32,6 +32,8 @@ These folders should hold pre-converted files from remix ingestion. The files mu
 ### 2. USDA File to Append
 Navigate to the USDA file you wish to append in your project folder. Although it's possible to append to your root `mod.usda`, it's recommended to work in a sub-layer per level.
 
+This program will not make a correct scratch usda file it will only edit ones made from remix correctly.
+
 ### 3. Destination Folder
 Your destination folder must be inside your project folder, specifically under a folder named `assets` (e.g., `rootprojectfolder/assets`).
 
@@ -39,12 +41,15 @@ Your destination folder must be inside your project folder, specifically under a
 
 ![image](https://github.com/Night1099/Nvidia-Remix-Texture-USDA-Batch-Ingestion/assets/90132896/54f42439-caf9-41e2-93e4-60bd3420c0d2)
 
-You can create as many layers of subfolders as you want within the assets folder; the program will recognize them.
+You can create as many layers of subfolders as you want within the assets folder, the program will recognize them.
 Example: /assets/Halo/level_5/GroundTextures works
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Ideal Workflow I was envisioning making this program
+
 1. Make pbr maps
 2. Ingest into remix to convert put in folder named "Material Name - MaterialID" REPEAT for x amount of materials
 3. Run Program
 4. Run game
+
+Please backup your files often / before trying this for first time. I havent had a problem but i dont want to mess up your project.
