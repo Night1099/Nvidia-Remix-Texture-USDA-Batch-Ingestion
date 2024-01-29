@@ -54,24 +54,24 @@ def append_materials_to_looks_section(materials, usda_path, ingest_path, destina
     for material_id, files in materials.items():
         folder_name = [folder for folder in os.listdir(ingest_path) if material_id in folder][0]  # Get the full folder name containing the material_id
         
-        # Check if destination_path and project_root are on the same drive
-        if os.path.splitdrive(destination_path)[0] == os.path.splitdrive(project_root)[0]:
-            # Calculate the relative path
-            relative_path_to_destination = os.path.relpath(destination_path, project_root)
-            # Ensure it starts with .\ if not already
-            if not relative_path_to_destination.startswith('.\\'):
-                relative_path_to_destination = '.\\' + relative_path_to_destination
-            base_path = relative_path_to_destination
-        else:
-            base_path = destination_path  # Use absolute path if not on the same drive
+        # Manually construct the relative path
+        base_path = project_root
+        assets_dir_name = os.path.basename(os.path.normpath(project_root))  # e.g., 'assets'
+        
+        # Extract subdirectory structure beyond './assets'
+        destination_subdirs = destination_path.partition(assets_dir_name)[2] if assets_dir_name in destination_path else ''
+        
+        base_path += destination_subdirs
 
         # Replace backward slashes with forward slashes for consistency
         base_path = base_path.replace('\\', '/')
-
-        # Modify file paths to be relative to project_root or absolute if on different drives
-        diffuse_file = f'{base_path}/{folder_name}/{material_id}_diffuse.a.rtex.dds'
-        height_file = f'{base_path}/{folder_name}/{material_id}_height.h.rtex.dds'
-        normal_file = f'{base_path}/{folder_name}/{material_id}_normals_OTH_Normal.n.rtex.dds'
+        if not base_path.endswith('/'):
+            base_path += '/'
+        
+        # Use the base_path for asset paths
+        diffuse_file = f'{base_path}{folder_name}/{material_id}_diffuse.a.rtex.dds'
+        height_file = f'{base_path}{folder_name}/{material_id}_height.h.rtex.dds'
+        normal_file = f'{base_path}{folder_name}/{material_id}_normals_OTH_Normal.n.rtex.dds'
         
         material_definition = [
     f'    over "mat_{material_id}"\n',
