@@ -14,7 +14,9 @@ When you run the program, it will request three folders:
 2. USDA File to Append
 3. Destination Folder
 
-Folder and their files from the ingestion folder will be moved to the destination folder after processing.
+Your current step is displayed on top right of file explorer
+
+Folders and their files from the ingestion folder will be moved to the destination folder after processing.
 
 ### 1. Ingestion Folder
 Your ingestion folder should include folders named with the material ID of the assets, MUST BE THIS FORMAT "Material Name - MaterialID".
