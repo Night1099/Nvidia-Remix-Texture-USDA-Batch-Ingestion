@@ -27,6 +27,8 @@ Your ingestion folder should include folders named with the material ID of the a
 
 These folders should hold pre-converted files from remix ingestion. The files must be labeled at the end of the filename with `_diffuse`, `_height`, or `_normals` before ingestion. Although they don't need to have material IDs, they can be named anything. For example, ingesting `jimhadafish_normals.png` will work.
 
+It will auto set height map displacement to 0.01
+
 **Example:**
 
 ![image](https://github.com/Night1099/Nvidia-Remix-Texture-USDA-Batch-Ingestion/assets/90132896/cde97a51-9b26-447f-806a-b6156e1b58f3)
