@@ -56,4 +56,11 @@ Ideal Workflow I was envisioning making this program
 3. Run Program
 4. Run game
 
+
+TO DO:
+
+Add Roughness and mettalic map support
+Give user choice of what maps to batch ingest ie only diffuse
+
+DISCLAIMER:
 Please backup your files often / before trying this for first time. I havent had a problem but i dont want to mess up your project.
