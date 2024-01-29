@@ -59,7 +59,7 @@ Ideal Workflow I was envisioning making this program
 
 TO DO:
 
-Add Roughness and mettalic map support
+Add Roughness and metallic map support
 Give user choice of what maps to batch ingest ie only diffuse
 
 DISCLAIMER:
