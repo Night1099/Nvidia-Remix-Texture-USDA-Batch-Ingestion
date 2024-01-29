@@ -4,7 +4,7 @@ This tool streamlines PBR mapping for textures in usda project files for the Nvi
 
 It was made to assist me in remastring Mount & Blade
 
-## **Note:** Currently, the tool only supports three types of maps in specific folders: Albedo/Diffuse, Normal, and Height.
+## **Note:** Currently, the tool only currently supports three types of maps in specific folders: Albedo/Diffuse, Normal, and Height. You must have all 3 to give to the tool
 
 ## How To Use:
 
