@@ -1,8 +1,8 @@
 # Nvidia-Remix-Texture-USDA-Batch-Ingestion
 
-This tool streamlines PBR mapping for textures in usda project files for the Nvidia Remix Toolkit. To cut out the step of opening remix everytime to put the textures on materials and trying to navigate a 'probably' incomplete capture
+This tool streamlines PBR mapping for textures in usda project files for the Nvidia Remix Toolkit. To cut out the step of opening remix every time to put the textures on materials and trying to navigate a 'probably' incomplete capture
 
-It was made to assist me in remastring Mount & Blade
+It was made to assist me in remastering Mount & Blade
 
 ## **Note:** Currently, the tool only currently supports three types of maps in specific folders: Albedo/Diffuse, Normal, and Height. You must have all 3 to give to the tool
 
