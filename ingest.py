@@ -72,68 +72,81 @@ def append_materials_to_looks_section(materials, usda_path, ingest_path, destina
         diffuse_file = f'{base_path}{folder_name}/{material_id}_diffuse.a.rtex.dds'
         height_file = f'{base_path}{folder_name}/{material_id}_height.h.rtex.dds'
         normal_file = f'{base_path}{folder_name}/{material_id}_normals_OTH_Normal.n.rtex.dds'
-        
+
         material_definition = [
-    f'    over "mat_{material_id}"\n',
-    '    {\n',
-    '        over "Shader"\n',
-    '        {\n',
-    f'            asset inputs:diffuse_texture = @{diffuse_file}@ (\n',
-    '                customData = {\n',
-    '                    asset default = @@\n',
-    '                }\n',
-    '                displayGroup = "Base Material"\n',
-    '                displayName = "Albedo/Opacity Map"\n',
-    '                doc = """The texture specifying the albedo value and the optional opacity value to use in the alpha channel\n\n"""\n',
-    '                hidden = false\n',
-    '                renderType = "texture_2d"\n',
-    '            )\n',
-    '            float inputs:displace_in = 0.01 (\n',
-    '                customData = {\n',
-    '                    float default = 1\n',
-    '                    dictionary range = {\n',
-    '                        float max = 255\n',
-    '                        float min = 0\n',
-    '                    }\n',
-    '                }\n',
-    '                displayGroup = "Displacement"\n',
-    '                displayName = "Inwards Displacement"\n',
-    '                doc = """Ratio of UV width to depth.  If the texture is displayed as 1 meter wide, then a value of 1 means it can be at most 1 meter deep.  A value of 0.1 means that same 1 meter wide quad can be at most 0.1 meters deep.\nThis parameter is unused.\n"""\n',
-    '                hidden = false\n',
-    '            )\n',
-    f'            asset inputs:height_texture = @{height_file}@ (\n',
-    '                colorSpace = "auto"\n',
-    '                customData = {\n',
-    '                    asset default = @@\n',
-    '                }\n',
-    '                displayGroup = "Displacement"\n',
-    '                displayName = "Height Map"\n',
-    '                doc = """A pixel value of 0 is the lowest point.  A pixel value of 1 will be the highest point.\nThis parameter is unused.\n"""\n',
-    '                hidden = false\n',
-    '                renderType = "texture_2d"\n',
-    '            )\n',
-    f'            asset inputs:normalmap_texture = @{normal_file}@ (\n',
-    '                colorSpace = "auto"\n',
-    '                customData = {\n',
-    '                    asset default = @@\n',
-    '                }\n',
-    '                displayGroup = "Base Material"\n',
-    '                displayName = "Normal Map"\n',
-    '                hidden = false\n',
-    '                renderType = "texture_2d"\n',
-    '            )\n',
-    '        }\n',
-    '    }\n',
     '\n'  # Add an extra newline for spacing between material sections
+    f'        over "mat_{material_id}"\n',
+    '        {\n',
+    '            over "Shader"\n',
+    '            {\n',
+    f'                asset inputs:diffuse_texture = @{diffuse_file}@ (\n',
+    '                    customData = {\n',
+    '                        asset default = @@\n',
+    '                    }\n',
+    '                    displayGroup = "Base Material"\n',
+    '                    displayName = "Albedo/Opacity Map"\n',
+    '                    doc = """The texture specifying the albedo value and the optional opacity value to use in the alpha channel\n\n"""\n',
+    '                    hidden = false\n',
+    '                    renderType = "texture_2d"\n',
+    '                )\n',
+    '                float inputs:displace_in = 0.01 (\n',
+    '                    customData = {\n',
+    '                        float default = 1\n',
+    '                        dictionary range = {\n',
+    '                            float max = 255\n',
+    '                            float min = 0\n',
+    '                        }\n',
+    '                    }\n',
+    '                    displayGroup = "Displacement"\n',
+    '                    displayName = "Inwards Displacement"\n',
+    '                    doc = """Ratio of UV width to depth.  If the texture is displayed as 1 meter wide, then a value of 1 means it can be at most 1 meter deep.  A value of 0.1 means that same 1 meter wide quad can be at most 0.1 meters deep.\nThis parameter is unused.\n"""\n',
+    '                    hidden = false\n',
+    '                )\n',
+    f'                asset inputs:height_texture = @{height_file}@ (\n',
+    '                    colorSpace = "auto"\n',
+    '                    customData = {\n',
+    '                        asset default = @@\n',
+    '                    }\n',
+    '                    displayGroup = "Displacement"\n',
+    '                    displayName = "Height Map"\n',
+    '                    doc = """A pixel value of 0 is the lowest point.  A pixel value of 1 will be the highest point.\nThis parameter is unused.\n"""\n',
+    '                    hidden = false\n',
+    '                    renderType = "texture_2d"\n',
+    '                )\n',
+    f'                asset inputs:normalmap_texture = @{normal_file}@ (\n',
+    '                    colorSpace = "auto"\n',
+    '                    customData = {\n',
+    '                        asset default = @@\n',
+    '                    }\n',
+    '                    displayGroup = "Base Material"\n',
+    '                    displayName = "Normal Map"\n',
+    '                    hidden = false\n',
+    '                    renderType = "texture_2d"\n',
+    '                )\n',
+    '            }\n',
+    '        }\n',
 ]
 
-        # Ensure there's a newline before adding the first new material, if it's not already there
-        if looks_end_index > 0 and not usda_content[looks_end_index - 1].strip() == '':
-            material_definition = ['\n'] + material_definition
 
-        usda_content = usda_content[:looks_end_index] + material_definition + usda_content[looks_end_index:]
-        looks_end_index += len(material_definition)
-    
+
+
+
+        if looks_end_index > 0:
+            # Ensure there's a newline before the new material definition
+            if not usda_content[looks_end_index - 1].endswith('\n'):
+                material_definition = ['\n'] + material_definition
+            
+            insertion_index = looks_end_index - 1
+            usda_content = usda_content[:insertion_index] + material_definition + usda_content[insertion_index:]
+            looks_end_index += len(material_definition)
+        else:
+            print("Error: The end of the 'Looks' section could not be found.")
+            # Handle the error appropriately
+
+    # Remove extra newline at the end of the Looks section if it exists
+    if looks_end_index < len(usda_content) and usda_content[looks_end_index - 1] == '\n':
+        usda_content.pop(looks_end_index - 1)
+
     with open(usda_path, 'w') as file:
         file.writelines(usda_content)
 
