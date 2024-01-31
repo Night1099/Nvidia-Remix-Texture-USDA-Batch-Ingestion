@@ -26,7 +26,7 @@ Your ingestion folder should include folders named with the material ID of the a
 
 These folders should hold pre-converted files from remix ingestion. The files must be labeled at the end of the filename with `_diffuse`, `_height`, `roughness`, `_normals` or `_metallic` before ingestion. Although they don't need to have material IDs, they can be named anything. For example, ingesting `jimhadafish_normals.png` will work.
 
-NEW - Will dynamically apply what maps are available to it per material. If a folder has only a diffuse, roughness, and mettalic map it will apply only those maps to the material.
+NEW - Will dynamically apply what maps are available to it per material. If a folder has only a diffuse, roughness, and metallic map it will apply only those maps to the material.
 
 
 
