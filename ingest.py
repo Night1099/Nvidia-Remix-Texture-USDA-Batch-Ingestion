@@ -52,7 +52,7 @@ def append_materials_to_looks_section(materials, usda_path, ingest_path, destina
         looks_end_index = len(usda_content) - 1
 
     for material_id, files in materials.items():
-        folder_name = [folder for folder in os.listdir(ingest_path) if material_id in folder][0]  # Get the full folder name containing the material_id
+        folder_name = [folder for folder in os.listdir(ingest_path) if material_id in folder][0]
         
         # Manually construct the relative path
         base_path = project_root
@@ -69,67 +69,40 @@ def append_materials_to_looks_section(materials, usda_path, ingest_path, destina
             base_path += '/'
         
         # Use the base_path for asset paths
-        diffuse_file = f'{base_path}{folder_name}/{material_id}_diffuse.a.rtex.dds'
-        height_file = f'{base_path}{folder_name}/{material_id}_height.h.rtex.dds'
-        normal_file = f'{base_path}{folder_name}/{material_id}_normals_OTH_Normal.n.rtex.dds'
+        file_mapping = {
+            'diffuse': '_diffuse.a.rtex.dds',
+            'height': '_height.h.rtex.dds',
+            'normals': '_normals_OTH_Normal.n.rtex.dds',
+            'roughness': '_roughness.r.rtex.dds',
+            'metallic': '_metallic.m.rtex.dds'
+        }
 
         material_definition = [
-    '\n'  # Add an extra newline for spacing between material sections
-    f'        over "mat_{material_id}"\n',
-    '        {\n',
-    '            over "Shader"\n',
-    '            {\n',
-    f'                asset inputs:diffuse_texture = @{diffuse_file}@ (\n',
-    '                    customData = {\n',
-    '                        asset default = @@\n',
-    '                    }\n',
-    '                    displayGroup = "Base Material"\n',
-    '                    displayName = "Albedo/Opacity Map"\n',
-    '                    doc = """The texture specifying the albedo value and the optional opacity value to use in the alpha channel\n\n"""\n',
-    '                    hidden = false\n',
-    '                    renderType = "texture_2d"\n',
-    '                )\n',
-    '                float inputs:displace_in = 0.01 (\n',
-    '                    customData = {\n',
-    '                        float default = 1\n',
-    '                        dictionary range = {\n',
-    '                            float max = 255\n',
-    '                            float min = 0\n',
-    '                        }\n',
-    '                    }\n',
-    '                    displayGroup = "Displacement"\n',
-    '                    displayName = "Inwards Displacement"\n',
-    '                    doc = """Ratio of UV width to depth.  If the texture is displayed as 1 meter wide, then a value of 1 means it can be at most 1 meter deep.  A value of 0.1 means that same 1 meter wide quad can be at most 0.1 meters deep.\nThis parameter is unused.\n"""\n',
-    '                    hidden = false\n',
-    '                )\n',
-    f'                asset inputs:height_texture = @{height_file}@ (\n',
-    '                    colorSpace = "auto"\n',
-    '                    customData = {\n',
-    '                        asset default = @@\n',
-    '                    }\n',
-    '                    displayGroup = "Displacement"\n',
-    '                    displayName = "Height Map"\n',
-    '                    doc = """A pixel value of 0 is the lowest point.  A pixel value of 1 will be the highest point.\nThis parameter is unused.\n"""\n',
-    '                    hidden = false\n',
-    '                    renderType = "texture_2d"\n',
-    '                )\n',
-    f'                asset inputs:normalmap_texture = @{normal_file}@ (\n',
-    '                    colorSpace = "auto"\n',
-    '                    customData = {\n',
-    '                        asset default = @@\n',
-    '                    }\n',
-    '                    displayGroup = "Base Material"\n',
-    '                    displayName = "Normal Map"\n',
-    '                    hidden = false\n',
-    '                    renderType = "texture_2d"\n',
-    '                )\n',
-    '            }\n',
-    '        }\n',
-]
+            '\n',  # Add an extra newline for spacing between material sections
+            f'        over "mat_{material_id}"\n',
+            '        {\n',
+            '            over "Shader"\n',
+            '            {\n',
+        ]
 
+        # Dynamically add texture definitions if files exist
+        for map_type, suffix in file_mapping.items():
+            file_name = f'{material_id}{suffix}'
+            if file_name in files:
+                file_path = f'{base_path}{folder_name}/{file_name}'
+                if map_type == 'diffuse':
+                    material_definition.extend(get_diffuse_definition(file_path))
+                elif map_type == 'height':
+                    material_definition.extend(get_height_definition(file_path))
+                elif map_type == 'normals':
+                    material_definition.extend(get_normal_definition(file_path))
+                elif map_type == 'roughness':
+                    material_definition.extend(get_roughness_definition(file_path))
+                elif map_type == 'metallic':
+                    material_definition.extend(get_metallic_definition(file_path))
 
-
-
+                    # Close the material definition
+        material_definition.extend(['            }\n', '        }\n'])
 
         if looks_end_index > 0:
             # Ensure there's a newline before the new material definition
@@ -151,6 +124,104 @@ def append_materials_to_looks_section(materials, usda_path, ingest_path, destina
         file.writelines(usda_content)
 
     print(f"Data successfully written to {usda_path}")
+
+def get_diffuse_definition(file_path):
+    return [
+        f'                asset inputs:diffuse_texture = @{file_path}@ (\n',
+        '                    customData = {\n',
+        '                        asset default = @@\n',
+        '                    }\n',
+        '                    displayGroup = "Base Material"\n',
+        '                    displayName = "Albedo/Opacity Map"\n',
+        '                    doc = """The texture specifying the albedo value and the optional opacity value to use in the alpha channel\n\n"""\n',
+        '                    hidden = false\n',
+        '                    renderType = "texture_2d"\n',
+        '                )\n',
+    ]
+
+def get_height_definition(file_path):
+    return [
+        f'                asset inputs:height_texture = @{file_path}@ (\n',
+        '                    colorSpace = "auto"\n',
+        '                    customData = {\n',
+        '                        asset default = @@\n',
+        '                    }\n',
+        '                    displayGroup = "Displacement"\n',
+        '                    displayName = "Height Map"\n',
+        '                    doc = """A pixel value of 0 is the lowest point.  A pixel value of 1 will be the highest point.\nThis parameter is unused.\n"""\n',
+        '                    hidden = false\n',
+        '                    renderType = "texture_2d"\n',
+        '                )\n',
+        '                float inputs:displace_in = 0.01 (\n',
+        '                    customData = {\n',
+        '                        float default = 1\n',
+        '                        dictionary range = {\n',
+        '                            float max = 255\n',
+        '                            float min = 0\n',
+        '                        }\n',
+        '                    }\n',
+        '                    displayGroup = "Displacement"\n',
+        '                    displayName = "Inwards Displacement"\n',
+        '                    doc = """Ratio of UV width to depth.  If the texture is displayed as 1 meter wide, then a value of 1 means it can be at most 1 meter deep.  A value of 0.1 means that same 1 meter wide quad can be at most 0.1 meters deep.\nThis parameter is unused.\n"""\n',
+        '                    hidden = false\n',
+        '                )\n',
+    ]
+
+def get_normal_definition(file_path):
+    return [
+        f'                asset inputs:normalmap_texture = @{file_path}@ (\n',
+        '                    colorSpace = "auto"\n',
+        '                    customData = {\n',
+        '                        asset default = @@\n',
+        '                    }\n',
+        '                    displayGroup = "Base Material"\n',
+        '                    displayName = "Normal Map"\n',
+        '                    hidden = false\n',
+        '                    renderType = "texture_2d"\n',
+        '                )\n',
+    ]
+
+def get_roughness_definition(file_path):
+    return [
+        f'                asset inputs:reflectionroughness_texture = @{file_path}@ (\n',
+        '                    colorSpace = "auto"\n',
+        '                    customData = {\n',
+        '                        asset default = @@\n',
+        '                    }\n',
+        '                    displayGroup = "Base Material"\n',
+        '                    displayName = "Roughness Map"\n',
+        '                    doc = """A single channel texture defining roughness per texel.  Higher roughness values lead to more blurry reflections.\n\n"""\n',
+        '                    hidden = false\n',
+        '                    renderType = "texture_2d"\n',
+        '                )\n',
+    ]
+
+def get_metallic_definition(file_path):
+    return [
+        '                float inputs:metallic_constant = 0.5 (\n',
+        '                    customData = {\n',
+        '                        float default = 0\n',
+        '                        dictionary range = {\n',
+        '                            float max = 1\n',
+        '                            float min = 0\n',
+        '                        }\n',
+        '                    }\n',
+        '                    displayGroup = "Base Material"\n',
+        '                    displayName = "Metallic Amount"\n',
+        '                    doc = """How metallic is this material, 0 for not at all, 1 for fully metallic. (Used if no texture is specified).\n\n"""\n',
+        '                    hidden = false\n',
+        '                )\n',
+        f'                asset inputs:metallic_texture = @{file_path}@ (\n',
+        '                    colorSpace = "auto"\n',
+        '                    customData = {\n',
+        '                        asset default = @@\n',
+        '                    }\n',
+        '                    displayGroup = "Base Material"\n',
+        '                    displayName = "Metallic Map"\n',
+        '                    hidden = false\n',
+        '                    renderType = "texture_2d"\n',
+        '                )\n',
+    ]
 
 if __name__ == "__main__":
     root = tk.Tk()
