@@ -4,7 +4,7 @@ This tool streamlines PBR mapping for textures in usda project files for the Nvi
 
 It was made to assist me in remastering Mount & Blade: Warband
 
-
+Note- Please run this program in same drive you have ingest folder and remix project
 ## How To Use:
 
 When you run the program, it will request three folders:
