@@ -1,133 +1,92 @@
 import os
 import shutil
+import re
 import tkinter as tk
 from tkinter import filedialog
+
+def is_braces_balanced(usda_content):
+    stack = []
+    for line in usda_content:
+        for char in line:
+            if char == '{':
+                stack.append(char)
+            elif char == '}':
+                if not stack or stack[-1] != '{':
+                    return False
+                stack.pop()
+    return not stack
 
 def get_materials_from_ingest_folder(ingest_path):
     materials = {}
     for folder_name in os.listdir(ingest_path):
-        material_id = folder_name.split(' - ')[-1]  # Assumes folder name format "Material Name - MaterialID"
-        material_path = os.path.join(ingest_path, folder_name)
-        
-        # Check if the path is indeed a directory
-        if os.path.isdir(material_path):
-            files = os.listdir(material_path)
-            materials[material_id] = [file for file in files if file.startswith(material_id)]
+        parts = folder_name.split(' - ')
+        if len(parts) > 1:
+            material_id = parts[-1].strip()
+            material_path = os.path.join(ingest_path, folder_name)
+            
+            if os.path.isdir(material_path):
+                files = os.listdir(material_path)
+                file_dict = {}
+                for file in files:
+                    if file.endswith('.meta'):
+                        file = file[:-5]
+
+                    name_parts = file.split('_')
+                    if len(name_parts) > 1:
+                        map_type = '_'.join(name_parts[1:]).split('.')[0]
+                        if 'normal' in map_type.lower():
+                            map_type = 'normals'
+                        if map_type not in file_dict:
+                            file_dict[map_type] = file
+                materials[material_id] = file_dict
+                print(f"Processed {material_id}: {file_dict}")
     
     return materials
 
-def append_materials_to_looks_section(materials, usda_path, ingest_path, destination_path, project_root='./assets'):
-    looks_section_exists = False
+def find_looks_section(usda_content):
+    looks_start_index = None
     looks_end_index = None
-    usda_content = []
+    brace_count = 0
+    inside_looks_section = False
+    looks_indentation_level = None
+    found_opening_brace = False
 
-    # Read the existing content of the file if it exists
-    if os.path.exists(usda_path):
-        with open(usda_path, 'r') as file:
-            usda_content = file.readlines()
-        
-        # Check if a "Looks" section exists
-        for i, line in enumerate(usda_content):
-            if 'over "Looks"' in line:
-                looks_section_exists = True
-                brace_count = 1  # Starting brace count after finding "Looks"
-                for j, l in enumerate(usda_content[i+1:], start=i+1):
-                    if '{' in l:
-                        brace_count += 1
-                    if '}' in l:
-                        brace_count -= 1
-                    if brace_count == 0:  # Found the matching closing brace for "Looks"
-                        looks_end_index = j  # The index of the closing brace
-                        break
-                break
+    for i, line in enumerate(usda_content):
+        stripped_line = line.strip()
 
-        if not looks_section_exists:
-            # If "Looks" section doesn't exist, append it at the end
-            usda_content += ['over "Looks"\n', '{\n', '}\n']
-            looks_end_index = len(usda_content) - 1
+        # Detect the start of the 'Looks' section and the line with the opening brace '{'
+        if 'over "Looks"' in stripped_line:
+            looks_start_index = i
+            inside_looks_section = True
+            if '{' in stripped_line:
+                found_opening_brace = True
+                looks_indentation_level = len(line) - len(line.lstrip(' '))
+                brace_count += stripped_line.count('{')
 
-    else:
-        # If file doesn't exist, start with a "Looks" section
-        usda_content = ['over "Looks"\n', '{\n', '}\n']
-        looks_end_index = len(usda_content) - 1
-
-    for material_id, files in materials.items():
-        folder_name = [folder for folder in os.listdir(ingest_path) if material_id in folder][0]
-        
-        # Manually construct the relative path
-        base_path = project_root
-        assets_dir_name = os.path.basename(os.path.normpath(project_root))  # e.g., 'assets'
-        
-        # Extract subdirectory structure beyond './assets'
-        destination_subdirs = destination_path.partition(assets_dir_name)[2] if assets_dir_name in destination_path else ''
-        
-        base_path += destination_subdirs
-
-        # Replace backward slashes with forward slashes for consistency
-        base_path = base_path.replace('\\', '/')
-        if not base_path.endswith('/'):
-            base_path += '/'
-        
-        # Use the base_path for asset paths
-        file_mapping = {
-            'diffuse': '_diffuse.a.rtex.dds',
-            'height': '_height.h.rtex.dds',
-            'normals': '_normals_OTH_Normal.n.rtex.dds',
-            'roughness': '_roughness.r.rtex.dds',
-            'metallic': '_metallic.m.rtex.dds'
-        }
-
-        material_definition = [
-            '\n',  # Add an extra newline for spacing between material sections
-            f'        over "mat_{material_id}"\n',
-            '        {\n',
-            '            over "Shader"\n',
-            '            {\n',
-        ]
-
-        # Dynamically add texture definitions if files exist
-        for map_type, suffix in file_mapping.items():
-            file_name = f'{material_id}{suffix}'
-            if file_name in files:
-                file_path = f'{base_path}{folder_name}/{file_name}'
-                if map_type == 'diffuse':
-                    material_definition.extend(get_diffuse_definition(file_path))
-                elif map_type == 'height':
-                    material_definition.extend(get_height_definition(file_path))
-                elif map_type == 'normals':
-                    material_definition.extend(get_normal_definition(file_path))
-                elif map_type == 'roughness':
-                    material_definition.extend(get_roughness_definition(file_path))
-                elif map_type == 'metallic':
-                    material_definition.extend(get_metallic_definition(file_path))
-
-                    # Close the material definition
-        material_definition.extend(['            }\n', '        }\n'])
-
-        if looks_end_index > 0:
-            # Ensure there's a newline before the new material definition
-            if not usda_content[looks_end_index - 1].endswith('\n'):
-                material_definition = ['\n'] + material_definition
+        elif inside_looks_section:
+            if not found_opening_brace and '{' in stripped_line:
+                found_opening_brace = True
+                looks_indentation_level = len(line) - len(line.lstrip(' '))
+                brace_count += stripped_line.count('{')
+                continue  # Skip further processing for this line as we just found the opening brace
             
-            insertion_index = looks_end_index - 1
-            usda_content = usda_content[:insertion_index] + material_definition + usda_content[insertion_index:]
-            looks_end_index += len(material_definition)
-        else:
-            print("Error: The end of the 'Looks' section could not be found.")
-            # Handle the error appropriately
+            if found_opening_brace:
+                current_indentation_level = len(line) - len(line.lstrip(' '))
+                if current_indentation_level == looks_indentation_level:
+                    brace_count += stripped_line.count('{')
+                    brace_count -= stripped_line.count('}')
+                    if brace_count == 0:
+                        looks_end_index = i
+                        break
 
-    # Remove extra newline at the end of the Looks section if it exists
-    if looks_end_index < len(usda_content) and usda_content[looks_end_index - 1] == '\n':
-        usda_content.pop(looks_end_index - 1)
+    return looks_start_index, looks_end_index
 
-    with open(usda_path, 'w') as file:
-        file.writelines(usda_content)
 
-    print(f"Data successfully written to {usda_path}")
 
-def get_diffuse_definition(file_path):
+
+def create_diffuse_definition(material_id, diffuse_file):
     return [
-        f'                asset inputs:diffuse_texture = @{file_path}@ (\n',
+        f'                asset inputs:diffuse_texture = @{diffuse_file}@ (\n',
         '                    customData = {\n',
         '                        asset default = @@\n',
         '                    }\n',
@@ -139,19 +98,8 @@ def get_diffuse_definition(file_path):
         '                )\n',
     ]
 
-def get_height_definition(file_path):
+def create_height_definition(material_id, height_file):
     return [
-        f'                asset inputs:height_texture = @{file_path}@ (\n',
-        '                    colorSpace = "auto"\n',
-        '                    customData = {\n',
-        '                        asset default = @@\n',
-        '                    }\n',
-        '                    displayGroup = "Displacement"\n',
-        '                    displayName = "Height Map"\n',
-        '                    doc = """A pixel value of 0 is the lowest point.  A pixel value of 1 will be the highest point.\nThis parameter is unused.\n"""\n',
-        '                    hidden = false\n',
-        '                    renderType = "texture_2d"\n',
-        '                )\n',
         '                float inputs:displace_in = 0.01 (\n',
         '                    customData = {\n',
         '                        float default = 1\n',
@@ -165,11 +113,22 @@ def get_height_definition(file_path):
         '                    doc = """Ratio of UV width to depth.  If the texture is displayed as 1 meter wide, then a value of 1 means it can be at most 1 meter deep.  A value of 0.1 means that same 1 meter wide quad can be at most 0.1 meters deep.\nThis parameter is unused.\n"""\n',
         '                    hidden = false\n',
         '                )\n',
+        f'                asset inputs:height_texture = @{height_file}@ (\n',
+        '                    colorSpace = "auto"\n',
+        '                    customData = {\n',
+        '                        asset default = @@\n',
+        '                    }\n',
+        '                    displayGroup = "Displacement"\n',
+        '                    displayName = "Height Map"\n',
+        '                    doc = """A pixel value of 0 is the lowest point.  A pixel value of 1 will be the highest point.\nThis parameter is unused.\n"""\n',
+        '                    hidden = false\n',
+        '                    renderType = "texture_2d"\n',
+        '                )\n',
     ]
 
-def get_normal_definition(file_path):
+def create_normals_definition(material_id, normals_file):
     return [
-        f'                asset inputs:normalmap_texture = @{file_path}@ (\n',
+        f'                asset inputs:normalmap_texture = @{normals_file}@ (\n',
         '                    colorSpace = "auto"\n',
         '                    customData = {\n',
         '                        asset default = @@\n',
@@ -181,9 +140,9 @@ def get_normal_definition(file_path):
         '                )\n',
     ]
 
-def get_roughness_definition(file_path):
+def create_roughness_definition(material_id, roughness_file):
     return [
-        f'                asset inputs:reflectionroughness_texture = @{file_path}@ (\n',
+        f'                asset inputs:reflectionroughness_texture = @{roughness_file}@ (\n',
         '                    colorSpace = "auto"\n',
         '                    customData = {\n',
         '                        asset default = @@\n',
@@ -196,22 +155,9 @@ def get_roughness_definition(file_path):
         '                )\n',
     ]
 
-def get_metallic_definition(file_path):
+def create_metallic_definition(material_id, metallic_file):
     return [
-        '                float inputs:metallic_constant = 0.5 (\n',
-        '                    customData = {\n',
-        '                        float default = 0\n',
-        '                        dictionary range = {\n',
-        '                            float max = 1\n',
-        '                            float min = 0\n',
-        '                        }\n',
-        '                    }\n',
-        '                    displayGroup = "Base Material"\n',
-        '                    displayName = "Metallic Amount"\n',
-        '                    doc = """How metallic is this material, 0 for not at all, 1 for fully metallic. (Used if no texture is specified).\n\n"""\n',
-        '                    hidden = false\n',
-        '                )\n',
-        f'                asset inputs:metallic_texture = @{file_path}@ (\n',
+        f'                asset inputs:metallic_texture = @{metallic_file}@ (\n',
         '                    colorSpace = "auto"\n',
         '                    customData = {\n',
         '                        asset default = @@\n',
@@ -223,34 +169,123 @@ def get_metallic_definition(file_path):
         '                )\n',
     ]
 
+def create_material_definition(material_id, files, base_path, folder_name):
+    material_definition = [
+        f'        over "mat_{material_id}"\n',
+        '        {\n',
+        '            over "Shader"\n',
+        '            {\n'
+    ]
+
+    if 'diffuse' in files:
+        diffuse_file = f'{base_path}{folder_name}/{files["diffuse"]}'
+        material_definition += create_diffuse_definition(material_id, diffuse_file)
+    
+    if 'height' in files:
+        height_file = f'{base_path}{folder_name}/{files["height"]}'
+        material_definition += create_height_definition(material_id, height_file)
+    
+    if 'metallic' in files:
+        metallic_file = f'{base_path}{folder_name}/{files["metallic"]}'
+        material_definition += create_metallic_definition(material_id, metallic_file)
+    
+    if 'normals' in files:
+        normals_file = f'{base_path}{folder_name}/{files["normals"]}'
+        material_definition += create_normals_definition(material_id, normals_file)
+    
+    if 'roughness' in files:
+        roughness_file = f'{base_path}{folder_name}/{files["roughness"]}'
+        material_definition += create_roughness_definition(material_id, roughness_file)
+
+
+    material_definition.append('            }\n')
+    material_definition.append('        }\n')
+    material_definition.append('\n')
+
+    return material_definition
+
+
+def append_materials_to_looks_section(materials, usda_path, ingest_path, destination_path, project_root='./assets'):
+    usda_content = []
+    
+    # Read the .usda file content
+    if os.path.exists(usda_path):
+        with open(usda_path, 'r') as file:
+            usda_content = file.readlines()
+    else:
+        print(f"The specified .usda file does not exist: {usda_path}")
+        return
+    
+    # Find the 'Looks' section in the .usda file
+    looks_start_index, looks_end_index = find_looks_section(usda_content)
+    
+    if looks_start_index is None or looks_end_index is None:
+        print("Looks section not found or improperly formatted in the .usda file.")
+        return
+    
+    # Remove the closing brace of the original Looks section and insert a newline
+    if usda_content[looks_end_index].strip().endswith('}'):
+        usda_content.pop(looks_end_index)  # Remove the closing brace
+        usda_content.insert(looks_end_index, '\n')  # Insert a newline at the same position
+    else:
+        print("Closing brace of Looks section not found where expected.")
+        return
+    
+    # The position where new material definitions should be inserted is now looks_end_index + 1
+    # because the newline character is at looks_end_index
+    insertion_position = looks_end_index + 1
+    
+    for material_id, files in materials.items():
+        folder_name = [folder for folder in os.listdir(ingest_path) if material_id in folder][0]
+        base_path = project_root
+        assets_dir_name = os.path.basename(os.path.normpath(project_root))
+        destination_subdirs = destination_path.partition(assets_dir_name)[2] if assets_dir_name in destination_path else ''
+        base_path += destination_subdirs.replace('\\', '/')
+        if not base_path.endswith('/'):
+            base_path += '/'
+        
+        material_definition = create_material_definition(material_id, files, base_path, folder_name)
+        # Insert material definitions at the correct position
+        usda_content[insertion_position:insertion_position] = material_definition
+        # Update insertion position for next material definition
+        insertion_position += len(material_definition)
+    
+    # Ensure the Looks section is properly closed with braces
+    if usda_content and not usda_content[-1].strip() == '}':
+        # Append necessary closing braces to properly end the Looks section
+        while insertion_position < len(usda_content):
+            line = usda_content[insertion_position].strip()
+            if line == '}':
+                break
+            insertion_position += 1
+        usda_content.insert(insertion_position, '    }\n')
+    else:
+        print("Looks section is already properly closed.")
+
+    # Write the updated content back to the .usda file
+    with open(usda_path, 'w') as file:
+        file.writelines(usda_content)
+
+
+
+
 if __name__ == "__main__":
     root = tk.Tk()
     root.withdraw()
 
-    ingest_path = filedialog.askdirectory(
-        title="Select the ingest folder"
-    )
-    usda_path = filedialog.askopenfilename(
-        title="Select the .usda file to append to (or choose a name for a new file)",
-        filetypes=[("USD files", "*.usda")]
-    )
-    destination_path = filedialog.askdirectory(
-        title="Select the destination folder for the processed folders"
-    )
-
-    # Add an argument for project_root if you want to allow users to specify it
-    project_root = './assets'  # Default project root, can be changed or made dynamic
+    ingest_path = filedialog.askdirectory(title="Select the ingest folder")
+    usda_path = filedialog.askopenfilename(title="Select the .usda file to append to (or choose a name for a new file)", filetypes=[("USD files", "*.usda")])
+    destination_path = filedialog.askdirectory(title="Select the destination folder for the processed folders")
+    project_root = './assets'
 
     if ingest_path and usda_path and destination_path:
         materials = get_materials_from_ingest_folder(ingest_path)
         append_materials_to_looks_section(materials, usda_path, ingest_path, destination_path, project_root)
 
-        # Move each folder from the ingest directory to the destination directory
         for folder_name in os.listdir(ingest_path):
             source_folder_path = os.path.normpath(os.path.join(ingest_path, folder_name))
             dest_folder_path = os.path.normpath(os.path.join(destination_path, folder_name))
             
-            # Check if the path is indeed a directory before moving
             if os.path.isdir(source_folder_path):
                 try:
                     shutil.move(source_folder_path, dest_folder_path)
