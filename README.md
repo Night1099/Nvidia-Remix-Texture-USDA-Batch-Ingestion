@@ -16,7 +16,7 @@ When you run the program, it will request three folders:
 2. USDA File to Append
 3. Destination Folder
 
-Your current step is displayed on top right of file explorer
+Your current step is displayed on top left of file explorer
 
 Folders and their files from the ingestion folder will be moved to the destination folder after processing.
 
